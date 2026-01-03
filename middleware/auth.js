@@ -1,6 +1,6 @@
-const jwt = require("jsonwebtoken");
+import jwt from "jsonwebtoken";
 
-module.exports = function (req, res, next) {
+export default function verifyToken(req, res, next) {
   try {
     // ดึง header Authorization
     const authHeader = req.headers["authorization"];
@@ -31,4 +31,4 @@ module.exports = function (req, res, next) {
     console.error(err);
     return res.status(401).json({ error: "Unauthorized" });
   }
-};
+}

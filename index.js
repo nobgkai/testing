@@ -11,14 +11,15 @@ import payemntsRouter from "./routes/payments.js";
 import restaurantsRouter from "./routes/restaurants.js";
 import shippingsRouter from "./routes/shippings.js";
 
-import { swaggerUi, specs } from "./swagger.js";
+//import { swaggerUi, specs } from "./swagger.js";
 
 const app = express();
 
 app.use(express.json());
 
+app.use(express.static("public"));
 // Swagger
-app.use("/api-docs", swaggerUi.serve, swaggerUi.setup(specs));
+//app.use("/api-docs", swaggerUi.serve, swaggerUi.setup(specs));
 
 // Routes
 app.use("/", authRouter); // ✅ login / logout
@@ -28,6 +29,7 @@ app.use("/api/orders", ordersRouter);
 app.use("/api/payments", payemntsRouter);
 app.use("/api/restaurants", restaurantsRouter);
 app.use("/api/shippings", shippingsRouter);
+
 // test ping
 app.get("/ping", (req, res) => {
   res.json({ message: "ok" });
@@ -36,5 +38,5 @@ app.get("/ping", (req, res) => {
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {
   console.log(`Server running on http://localhost:${PORT}`);
-  console.log(`Swagger → http://localhost:${PORT}/api-docs`);
+  console.log(`Swagger → http://localhost:${PORT}/docs`);
 });

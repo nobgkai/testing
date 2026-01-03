@@ -1,0 +1,2928 @@
+{
+  "openapi": "3.0.0",
+  "info": {
+    "title": "BackEnd API",
+    "version": "1.0.0",
+    "description": "\nยินดีต้อนรับสู่เอกสาร API  \nAPI นี้ให้บริการจัดการผู้ใช้และระบบยืนยันตัวตนอย่างครบครัน\n\n---\n\n## 🔐 วิธีการยืนยันตัวตน\n\n### ขั้นตอนที่ 1: สมัครสมาชิก (ถ้ายังไม่มีบัญชี)\nใช้ **POST /api/users**\n\n```json\n{\n  \"firstname\": \"ทดสอบ\",\n  \"fullname\": \"ผู้ใช้ทดสอบ\",\n  \"lastname\": \"ระบบ\",\n  \"username\": \"testuser\",\n  \"password\": \"password123\"\n}\n```\n\n---\n\n### ขั้นตอนที่ 2: เข้าสู่ระบบ\nใช้ **POST /login**\n\n```json\n{\n  \"username\": \"testuser\",\n  \"password\": \"password123\"\n}\n```\n\n---\n\n### ขั้นตอนที่ 3: ยืนยันสิทธิ์\n1. คัดลอก **token** จากผลลัพธ์การเข้าสู่ระบบ  \n2. คลิกปุ่ม 🔓 **Authorize** (มุมขวาบน)  \n3. วาง token (**ไม่ต้องใส่ Bearer**)  \n4. คลิก **Authorize**\n\n🎉 ตอนนี้คุณสามารถเรียก API ที่ต้องยืนยันตัวตนได้แล้ว\n\n---\n\n## 📚 อ้างอิงด่วน\n\n| การกระทำ | Endpoint | ต้องยืนยันตัวตน |\n|--------|---------|----------------|\n| สมัครสมาชิก | POST /api/users | ❌ |\n| เข้าสู่ระบบ | POST /login | ❌ |\n| ออกจากระบบ | POST /logout | ✅ |\n| ดูผู้ใช้ทั้งหมด | GET /api/users | ✅ |\n| ดูผู้ใช้ตาม ID | GET /api/users/:id | ✅ |\n| แก้ไขผู้ใช้ | PUT /api/users/:id | ✅ |\n| ลบผู้ใช้ | DELETE /api/users/:id | ✅ |\n"
+  },
+  "tags": [
+    {
+      "name": "Auth",
+      "description": "ระบบยืนยันตัวตน"
+    },
+    {
+      "name": "Users",
+      "description": "จัดการผู้ใช้งาน"
+    },
+    {
+      "name": "Menus",
+      "description": "จัดการเมนูอาหาร"
+    },
+    {
+      "name": "Orders",
+      "description": "จัดการคำสั่งซื้อ"
+    },
+    {
+      "name": "Payments",
+      "description": "การชำระเงิน"
+    },
+    {
+      "name": "Restaurants",
+      "description": "ข้อมูลร้านอาหาร"
+    },
+    {
+      "name": "Shippings",
+      "description": "การจัดส่ง"
+    }
+  ],
+  "components": {
+    "securitySchemes": {
+      "bearerAuth": {
+        "type": "http",
+        "scheme": "bearer",
+        "bearerFormat": "JWT"
+      }
+    },
+    "schemas": {
+      "Customer": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "integer",
+            "example": 1
+          },
+          "username": {
+            "type": "string",
+            "example": "john123"
+          },
+          "firstname": {
+            "type": "string",
+            "example": "Mr."
+          },
+          "fullname": {
+            "type": "string",
+            "example": "John Smith"
+          },
+          "lastname": {
+            "type": "string",
+            "example": "Smith"
+          },
+          "address": {
+            "type": "string",
+            "example": "101/5 Main Street, London"
+          },
+          "phone": {
+            "type": "string",
+            "example": "0812345678"
+          },
+          "email": {
+            "type": "string",
+            "example": "john.smith@example.com"
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "updated_at": {
+            "type": "string",
+            "format": "date-time"
+          }
+        }
+      },
+      "CustomerInput": {
+        "type": "object",
+        "required": [
+          "username",
+          "password"
+        ],
+        "properties": {
+          "username": {
+            "type": "string",
+            "example": "john123"
+          },
+          "password": {
+            "type": "string",
+            "example": "123456"
+          },
+          "firstname": {
+            "type": "string",
+            "example": "Mr."
+          },
+          "fullname": {
+            "type": "string",
+            "example": "John Smith"
+          },
+          "lastname": {
+            "type": "string",
+            "example": "Smith"
+          },
+          "address": {
+            "type": "string"
+          },
+          "phone": {
+            "type": "string"
+          },
+          "email": {
+            "type": "string"
+          }
+        }
+      }
+    }
+  },
+  "security": [
+    {
+      "bearerAuth": []
+    }
+  ],
+  "paths": {
+    "/login": {
+      "post": {
+        "tags": [
+          "Auth"
+        ],
+        "summary": "🔐 Login",
+        "description": "ใช้สำหรับเข้าสู่ระบบด้วย username และ password\nหากข้อมูลถูกต้อง ระบบจะส่ง JWT Token กลับไป\n",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "username",
+                  "password"
+                ],
+                "properties": {
+                  "username": {
+                    "type": "string",
+                    "example": "test001"
+                  },
+                  "password": {
+                    "type": "string",
+                    "example": 123456
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "✅ Login success",
+            "content": {
+              "application/json": {
+                "example": {
+                  "token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "❌ Invalid username or password"
+          }
+        }
+      }
+    },
+    "/logout": {
+      "post": {
+        "tags": [
+          "Auth"
+        ],
+        "summary": "🚪 Logout",
+        "description": "ใช้สำหรับออกจากระบบ\nระบบฝั่ง server จะตอบกลับว่าสำเร็จ\nฝั่ง client ต้องลบ JWT Token ออกจาก storage เอง\n",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "✅ Logout success",
+            "content": {
+              "application/json": {
+                "example": {
+                  "status": "ok",
+                  "message": "Logout successful"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "🔒 Unauthorized"
+          }
+        }
+      }
+    },
+    "/api/menus": {
+      "get": {
+        "tags": [
+          "Menus"
+        ],
+        "summary": "📋 Get all menus",
+        "description": "Retrieve a paginated list of all menus.\n🔒 Requires authentication - Click **Authorize** button first!\n",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "query",
+            "name": "limit",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "maximum": 100,
+              "default": 10
+            },
+            "description": "Number of menus per page (max 100)"
+          },
+          {
+            "in": "query",
+            "name": "page",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "default": 1
+            },
+            "description": "Page number"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "✅ Success",
+            "content": {
+              "application/json": {
+                "example": {
+                  "status": "ok",
+                  "count": 1,
+                  "data": [
+                    {
+                      "id": 1,
+                      "restaurant_id": 1,
+                      "menu_name": "Pad Thai",
+                      "description": "Stir-fried rice noodles with shrimp",
+                      "price": 60,
+                      "category": "main_dish",
+                      "created_at": "2026-01-02T14:23:55.228Z",
+                      "updated_at": "2026-01-02T14:23:55.228Z"
+                    }
+                  ],
+                  "total": 1,
+                  "page": 1,
+                  "limit": 10
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "🔒 Unauthorized - Please login and use Authorize button first",
+            "content": {
+              "application/json": {
+                "example": {
+                  "status": "error",
+                  "message": "Unauthorized"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "❌ Server error",
+            "content": {
+              "application/json": {
+                "example": {
+                  "status": "error",
+                  "message": "Database error"
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "Menus"
+        ],
+        "summary": "➕ Create menu",
+        "description": "Create a new menu item.\n🔒 Requires authentication - Click **Authorize** button first!\n",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "restaurant_id",
+                  "menu_name",
+                  "price",
+                  "category"
+                ],
+                "properties": {
+                  "restaurant_id": {
+                    "type": "integer",
+                    "example": 1
+                  },
+                  "menu_name": {
+                    "type": "string",
+                    "example": "Pad Thai"
+                  },
+                  "description": {
+                    "type": "string",
+                    "example": "Stir-fried rice noodles with shrimp"
+                  },
+                  "price": {
+                    "type": "number",
+                    "format": "float",
+                    "example": 60
+                  },
+                  "category": {
+                    "type": "string",
+                    "enum": [
+                      "main_dish",
+                      "dessert",
+                      "drink",
+                      "recommended"
+                    ],
+                    "example": "main_dish"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "✅ Menu created successfully"
+          },
+          "400": {
+            "description": "⚠️ Missing required fields",
+            "content": {
+              "application/json": {
+                "example": {
+                  "status": "error",
+                  "message": "Missing required fields"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "🔒 Unauthorized",
+            "content": {
+              "application/json": {
+                "example": {
+                  "status": "error",
+                  "message": "Unauthorized"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "❌ Server error",
+            "content": {
+              "application/json": {
+                "example": {
+                  "status": "error",
+                  "message": "Internal server error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/menus/{id}": {
+      "get": {
+        "tags": [
+          "Menus"
+        ],
+        "summary": "🍽️ Get menu by ID",
+        "description": "ดึงข้อมูลเมนูอาหาร 1 รายการตาม Menu ID\n\n🔹 ใช้สำหรับ:\n- ดูรายละเอียดเมนูแบบเจาะจง\n- แสดงข้อมูลหน้าแก้ไขเมนู\n- ใช้งานร่วมกับระบบสั่งอาหาร\n\n🔒 ต้องผ่านการยืนยันตัวตน (Authentication)\n",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "integer"
+            },
+            "description": "รหัสเมนู (Menu ID)\nตัวอย่าง: `1`\n"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "✅ ดึงข้อมูลเมนูสำเร็จ",
+            "content": {
+              "application/json": {
+                "example": {
+                  "status": "success",
+                  "data": {
+                    "id": 1,
+                    "name": "ผัดกะเพรา",
+                    "price": 50,
+                    "category": "อาหารจานเดียว",
+                    "is_available": true
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "🔒 Unauthorized – ไม่มี Token หรือ Token ไม่ถูกต้อง",
+            "content": {
+              "application/json": {
+                "example": {
+                  "status": "error",
+                  "message": "Unauthorized"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "❌ ไม่พบเมนูที่ระบุ",
+            "content": {
+              "application/json": {
+                "example": {
+                  "status": "error",
+                  "message": "Menu not found"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "💥 Internal Server Error",
+            "content": {
+              "application/json": {
+                "example": {
+                  "status": "error",
+                  "message": "Internal server error"
+                }
+              }
+            }
+          }
+        }
+      },
+      "put": {
+        "tags": [
+          "Menus"
+        ],
+        "summary": "✏️ Update menu",
+        "description": "Update an existing menu.\nYou can send only the fields you want to update.\n🔒 Requires authentication\n",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "example": 1
+            },
+            "description": "Menu ID"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "restaurant_id": {
+                    "type": "integer",
+                    "example": 1
+                  },
+                  "menu_name": {
+                    "type": "string",
+                    "example": "Pad Thai"
+                  },
+                  "description": {
+                    "type": "string",
+                    "example": "Stir-fried rice noodles with shrimp"
+                  },
+                  "price": {
+                    "type": "number",
+                    "format": "float",
+                    "example": 65
+                  },
+                  "category": {
+                    "type": "string",
+                    "enum": [
+                      "main_dish",
+                      "dessert",
+                      "drink",
+                      "recommended"
+                    ],
+                    "example": "main_dish"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "✅ Menu updated successfully"
+          },
+          "400": {
+            "description": "⚠️ No fields to update",
+            "content": {
+              "application/json": {
+                "example": {
+                  "status": "error",
+                  "message": "No fields to update"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "🔒 Unauthorized",
+            "content": {
+              "application/json": {
+                "example": {
+                  "status": "error",
+                  "message": "Unauthorized"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "❌ Menu not found",
+            "content": {
+              "application/json": {
+                "example": {
+                  "status": "error",
+                  "message": "Menu not found"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "❌ Server error",
+            "content": {
+              "application/json": {
+                "example": {
+                  "status": "error",
+                  "message": "Internal server error"
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "Menus"
+        ],
+        "summary": "🗑️ Delete menu",
+        "description": "Delete a menu by ID.\n🔒 Requires authentication\n",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "example": 1
+            },
+            "description": "Menu ID"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "✅ Menu deleted successfully"
+          },
+          "401": {
+            "description": "🔒 Unauthorized",
+            "content": {
+              "application/json": {
+                "example": {
+                  "status": "error",
+                  "message": "Unauthorized"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "❌ Menu not found",
+            "content": {
+              "application/json": {
+                "example": {
+                  "status": "error",
+                  "message": "Menu not found"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "❌ Server error",
+            "content": {
+              "application/json": {
+                "example": {
+                  "status": "error",
+                  "message": "Internal server error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/orders": {
+      "get": {
+        "tags": [
+          "Orders"
+        ],
+        "summary": "📦 Get all orders",
+        "description": "ดึงรายการคำสั่งซื้อ (Orders) ทั้งหมดจากระบบ\n\n🔹 ใช้สำหรับ:\n- แสดงรายการออเดอร์ทั้งหมดในหน้า Admin\n- ตรวจสอบสถานะคำสั่งซื้อ\n- ทำรายงานหรือสรุปยอดขาย\n\n📄 รองรับการแบ่งหน้า (Pagination)\n🔒 ต้องผ่านการยืนยันตัวตน (Authentication)\n",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "query",
+            "name": "page",
+            "schema": {
+              "type": "integer",
+              "default": 1
+            },
+            "description": "หมายเลขหน้าที่ต้องการดึงข้อมูล\nตัวอย่าง: `1`\n"
+          },
+          {
+            "in": "query",
+            "name": "limit",
+            "schema": {
+              "type": "integer",
+              "default": 10
+            },
+            "description": "จำนวนรายการต่อหน้า\nตัวอย่าง: `10`\n"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "✅ ดึงรายการออเดอร์สำเร็จ",
+            "content": {
+              "application/json": {
+                "example": {
+                  "status": "success",
+                  "page": 1,
+                  "limit": 10,
+                  "total": 25,
+                  "data": [
+                    {
+                      "id": 1,
+                      "user_id": 3,
+                      "total_price": 250,
+                      "status": "paid",
+                      "created_at": "2026-01-01T10:30:00Z"
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "🔒 Unauthorized – ไม่มี Token หรือ Token ไม่ถูกต้อง",
+            "content": {
+              "application/json": {
+                "example": {
+                  "status": "error",
+                  "message": "Unauthorized"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "💥 Internal Server Error",
+            "content": {
+              "application/json": {
+                "example": {
+                  "status": "error",
+                  "message": "Internal server error"
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "Orders"
+        ],
+        "summary": "➕ Create order",
+        "description": "Create a new order.\n🔒 Requires authentication\n",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "customer_id",
+                  "restaurant_id",
+                  "menu_id",
+                  "quantity",
+                  "price"
+                ],
+                "properties": {
+                  "customer_id": {
+                    "type": "integer",
+                    "example": 1
+                  },
+                  "restaurant_id": {
+                    "type": "integer",
+                    "example": 1
+                  },
+                  "menu_id": {
+                    "type": "integer",
+                    "example": 5
+                  },
+                  "quantity": {
+                    "type": "integer",
+                    "example": 2
+                  },
+                  "price": {
+                    "type": "number",
+                    "format": "float",
+                    "example": 60
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "✅ Order created"
+          },
+          "400": {
+            "description": "⚠️ Missing required fields"
+          },
+          "401": {
+            "description": "🔒 Unauthorized",
+            "content": {
+              "application/json": {
+                "example": {
+                  "status": "error",
+                  "message": "Unauthorized"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "💥 Internal Server Error",
+            "content": {
+              "application/json": {
+                "example": {
+                  "status": "error",
+                  "message": "Internal server error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/orders/{id}": {
+      "get": {
+        "tags": [
+          "Orders"
+        ],
+        "summary": "📦 Get order by ID",
+        "description": "ดึงข้อมูลคำสั่งซื้อ 1 รายการตาม Order ID\n\n🔹 ใช้สำหรับ:\n- ดูรายละเอียดออเดอร์แบบเจาะจง\n- แสดงหน้า Order Detail\n- ตรวจสอบรายการอาหารในออเดอร์\n\n🔒 ต้องผ่านการยืนยันตัวตน (Authentication)\n",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "integer"
+            },
+            "description": "รหัสคำสั่งซื้อ (Order ID)\nตัวอย่าง: `5`\n"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "✅ ดึงข้อมูลออเดอร์สำเร็จ",
+            "content": {
+              "application/json": {
+                "example": {
+                  "status": "success",
+                  "data": {
+                    "id": 5,
+                    "user_id": 3,
+                    "total_price": 320,
+                    "status": "paid",
+                    "created_at": "2026-01-02T14:20:00Z",
+                    "items": [
+                      {
+                        "menu_id": 1,
+                        "name": "ผัดกะเพรา",
+                        "price": 50,
+                        "quantity": 2
+                      },
+                      {
+                        "menu_id": 3,
+                        "name": "ไข่ดาว",
+                        "price": 20,
+                        "quantity": 1
+                      }
+                    ]
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "⚠️ Bad Request – รูปแบบ Order ID ไม่ถูกต้อง",
+            "content": {
+              "application/json": {
+                "example": {
+                  "status": "error",
+                  "message": "Invalid order ID"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "🔒 Unauthorized – ไม่มี Token หรือ Token ไม่ถูกต้อง",
+            "content": {
+              "application/json": {
+                "example": {
+                  "status": "error",
+                  "message": "Unauthorized"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "❌ ไม่พบคำสั่งซื้อที่ระบุ",
+            "content": {
+              "application/json": {
+                "example": {
+                  "status": "error",
+                  "message": "Order not found"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "💥 Internal Server Error – ระบบมีปัญหา",
+            "content": {
+              "application/json": {
+                "example": {
+                  "status": "error",
+                  "message": "Internal server error"
+                }
+              }
+            }
+          }
+        }
+      },
+      "put": {
+        "tags": [
+          "Orders"
+        ],
+        "summary": "✏️ Update order status",
+        "description": "Update order status by order ID.\nสามารถอัปเดตสถานะเป็น\n- processing\n- completed\n- cancelled\n\n🔒 Requires authentication\n",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "example": 1
+            },
+            "description": "Order ID"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "status"
+                ],
+                "properties": {
+                  "status": {
+                    "type": "string",
+                    "enum": [
+                      "processing",
+                      "completed",
+                      "cancelled"
+                    ],
+                    "example": "completed"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "400": {
+            "description": "⚠️ Missing or invalid status",
+            "content": {
+              "application/json": {
+                "example": {
+                  "status": "error",
+                  "message": "Missing or invalid status"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "🔒 Unauthorized",
+            "content": {
+              "application/json": {
+                "example": {
+                  "status": "error",
+                  "message": "Unauthorized"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "❌ Order not found",
+            "content": {
+              "application/json": {
+                "example": {
+                  "status": "error",
+                  "message": "Order not found"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "💥 Internal Server Error",
+            "content": {
+              "application/json": {
+                "example": {
+                  "status": "error",
+                  "message": "Internal server error"
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "Orders"
+        ],
+        "summary": "🗑️ Delete order",
+        "description": "Delete an order by ID.\n🔒 Requires authentication\n",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "example": 1
+            },
+            "description": "Order ID"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "✅ Order deleted"
+          },
+          "401": {
+            "description": "🔒 Unauthorized",
+            "content": {
+              "application/json": {
+                "example": {
+                  "status": "error",
+                  "message": "Unauthorized"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "❌ Order not found",
+            "content": {
+              "application/json": {
+                "example": {
+                  "status": "error",
+                  "message": "Order not found"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "💥 Internal Server Error",
+            "content": {
+              "application/json": {
+                "example": {
+                  "status": "error",
+                  "message": "Internal server error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/payments": {
+      "get": {
+        "tags": [
+          "Payments"
+        ],
+        "summary": "💰 Get all payments",
+        "description": "ใช้สำหรับดึงข้อมูลการชำระเงินทั้งหมด\nรองรับ pagination\n🔒 ต้อง login และส่ง Bearer Token\n",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "query",
+            "name": "limit",
+            "schema": {
+              "type": "integer",
+              "example": 10
+            },
+            "description": "จำนวนข้อมูลต่อหน้า (สูงสุด 100)"
+          },
+          {
+            "in": "query",
+            "name": "page",
+            "schema": {
+              "type": "integer",
+              "example": 1
+            },
+            "description": "หน้าที่ต้องการดู"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "✅ Success",
+            "content": {
+              "application/json": {
+                "example": {
+                  "status": "ok",
+                  "count": 1,
+                  "data": [
+                    {
+                      "id": 1,
+                      "order_id": 5,
+                      "payment_method": "cash",
+                      "payment_status": "paid",
+                      "amount": 120,
+                      "paid_at": "2026-01-02T14:30:00.000Z",
+                      "created_at": "2026-01-02T14:23:55.228Z",
+                      "updated_at": "2026-01-02T14:30:00.000Z"
+                    }
+                  ],
+                  "total": 1,
+                  "page": 1,
+                  "limit": 10
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "❌ Invalid query parameters",
+            "content": {
+              "application/json": {
+                "example": {
+                  "status": "bad_request",
+                  "message": "limit must be a positive number"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "🔒 Unauthorized - Please login and use Authorize button first",
+            "content": {
+              "application/json": {
+                "example": {
+                  "status": "error",
+                  "message": "Unauthorized"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "❌ Server error",
+            "content": {
+              "application/json": {
+                "example": {
+                  "status": "error",
+                  "message": "Database error"
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "Payments"
+        ],
+        "summary": "➕ Create payment",
+        "description": "ใช้สำหรับสร้างข้อมูลการชำระเงิน\nหาก payment_status = paid ระบบจะตั้ง paid_at ให้อัตโนมัติ\n🔒 Requires authentication\n",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "order_id",
+                  "payment_method",
+                  "amount"
+                ],
+                "properties": {
+                  "order_id": {
+                    "type": "integer",
+                    "example": 10
+                  },
+                  "payment_method": {
+                    "type": "string",
+                    "enum": [
+                      "cash",
+                      "CQ_code",
+                      "prompay"
+                    ],
+                    "example": "cash"
+                  },
+                  "payment_status": {
+                    "type": "string",
+                    "enum": [
+                      "paid",
+                      "unpaid"
+                    ],
+                    "example": "paid"
+                  },
+                  "amount": {
+                    "type": "number",
+                    "format": "float",
+                    "example": 120
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "✅ Payment created successfully",
+            "content": {
+              "application/json": {
+                "example": {
+                  "status": "ok",
+                  "id": 1
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "❌ Invalid input",
+            "content": {
+              "application/json": {
+                "example": {
+                  "status": "bad_request",
+                  "message": "Missing required fields"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "🔒 Unauthorized",
+            "content": {
+              "application/json": {
+                "example": {
+                  "status": "error",
+                  "message": "Unauthorized"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "❌ Server error",
+            "content": {
+              "application/json": {
+                "example": {
+                  "status": "error",
+                  "message": "Database error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/payments/{id}": {
+      "get": {
+        "tags": [
+          "Payments"
+        ],
+        "summary": "💳 Get payment by ID",
+        "description": "ใช้สำหรับดึงข้อมูลการชำระเงินตาม ID\n🔒 Requires authentication\n",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "example": 1
+            },
+            "description": "Payment ID"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "✅ Success",
+            "content": {
+              "application/json": {
+                "example": {
+                  "status": "ok",
+                  "data": {
+                    "id": 1,
+                    "order_id": 5,
+                    "payment_method": "cash",
+                    "payment_status": "paid",
+                    "amount": 120,
+                    "paid_at": "2026-01-02T14:30:00.000Z",
+                    "created_at": "2026-01-02T14:23:55.228Z",
+                    "updated_at": "2026-01-02T14:30:00.000Z"
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "❌ Invalid ID",
+            "content": {
+              "application/json": {
+                "example": {
+                  "status": "bad_request",
+                  "message": "id must be a number"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "🔒 Unauthorized",
+            "content": {
+              "application/json": {
+                "example": {
+                  "status": "error",
+                  "message": "Unauthorized"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "❌ Payment not found",
+            "content": {
+              "application/json": {
+                "example": {
+                  "status": "not_found",
+                  "message": "Payment not found"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "❌ Server error",
+            "content": {
+              "application/json": {
+                "example": {
+                  "status": "error",
+                  "message": "Database error"
+                }
+              }
+            }
+          }
+        }
+      },
+      "put": {
+        "tags": [
+          "Payments"
+        ],
+        "summary": "✏️ Update payment",
+        "description": "ใช้สำหรับอัปเดตข้อมูลการชำระเงินตาม Payment ID\n- paid  → ระบบจะตั้ง paid_at ให้อัตโนมัติ\n- unpaid → ระบบจะล้างค่า paid_at\n\n🔒 Requires authentication\n",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "example": 1
+            },
+            "description": "Payment ID"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "payment_method": {
+                    "type": "string",
+                    "enum": [
+                      "cash",
+                      "CQ_code",
+                      "prompay"
+                    ],
+                    "example": "cash"
+                  },
+                  "payment_status": {
+                    "type": "string",
+                    "enum": [
+                      "paid",
+                      "unpaid"
+                    ],
+                    "example": "paid"
+                  },
+                  "amount": {
+                    "type": "number",
+                    "format": "float",
+                    "example": 120
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "✅ Payment updated successfully",
+            "content": {
+              "application/json": {
+                "example": {
+                  "status": "ok",
+                  "message": "Payment updated successfully"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "❌ Invalid input",
+            "content": {
+              "application/json": {
+                "example": {
+                  "status": "bad_request",
+                  "message": "No fields to update"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "🔒 Unauthorized",
+            "content": {
+              "application/json": {
+                "example": {
+                  "status": "error",
+                  "message": "Unauthorized"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "❌ Payment not found",
+            "content": {
+              "application/json": {
+                "example": {
+                  "status": "not_found",
+                  "message": "Payment not found"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "❌ Server error",
+            "content": {
+              "application/json": {
+                "example": {
+                  "status": "error",
+                  "message": "Database error"
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "Payments"
+        ],
+        "summary": "🗑️ Delete payment",
+        "description": "ใช้สำหรับลบข้อมูลการชำระเงินตาม Payment ID\n🔒 Requires authentication\n",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "example": 1
+            },
+            "description": "Payment ID"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "✅ Payment deleted successfully",
+            "content": {
+              "application/json": {
+                "example": {
+                  "status": "ok",
+                  "message": "Payment deleted successfully"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "❌ Invalid ID",
+            "content": {
+              "application/json": {
+                "example": {
+                  "status": "bad_request",
+                  "message": "id must be a positive number"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "🔒 Unauthorized",
+            "content": {
+              "application/json": {
+                "example": {
+                  "status": "error",
+                  "message": "Unauthorized"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "❌ Payment not found",
+            "content": {
+              "application/json": {
+                "example": {
+                  "status": "not_found",
+                  "message": "Payment not found"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "❌ Server error",
+            "content": {
+              "application/json": {
+                "example": {
+                  "status": "error",
+                  "message": "Database error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/restaurants": {
+      "get": {
+        "tags": [
+          "Restaurants"
+        ],
+        "summary": "🍽️ Get all restaurants",
+        "description": "ดึงรายการร้านอาหารทั้งหมด\nรองรับ pagination\n🔒 Requires authentication\n",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "query",
+            "name": "limit",
+            "schema": {
+              "type": "integer",
+              "example": 10
+            },
+            "description": "จำนวนข้อมูลต่อหน้า (สูงสุด 100)"
+          },
+          {
+            "in": "query",
+            "name": "page",
+            "schema": {
+              "type": "integer",
+              "example": 1
+            },
+            "description": "หน้าที่ต้องการดู"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "✅ Success",
+            "content": {
+              "application/json": {
+                "example": {
+                  "status": "ok",
+                  "count": 1,
+                  "data": [
+                    {
+                      "id": 1,
+                      "restaurant_name": "Boom Restaurant",
+                      "address": "Chiang Mai",
+                      "phone": "0812345678",
+                      "menu_description": "Thai food",
+                      "created_at": "2026-01-02T10:00:00.000Z",
+                      "updated_at": "2026-01-02T10:00:00.000Z"
+                    }
+                  ],
+                  "total": 1,
+                  "page": 1,
+                  "limit": 10
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "❌ Invalid query parameters",
+            "content": {
+              "application/json": {
+                "example": {
+                  "status": "bad_request",
+                  "message": "limit must be a positive number"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "🔒 Unauthorized - Please login and use Authorize button first",
+            "content": {
+              "application/json": {
+                "example": {
+                  "status": "error",
+                  "message": "Unauthorized"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "❌ Server error",
+            "content": {
+              "application/json": {
+                "example": {
+                  "status": "error",
+                  "message": "Database error"
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "Restaurants"
+        ],
+        "summary": "➕ Create restaurant",
+        "description": "ใช้สำหรับสร้างร้านอาหารใหม่\n🔒 Requires authentication\n",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "restaurant_name"
+                ],
+                "properties": {
+                  "restaurant_name": {
+                    "type": "string",
+                    "example": "Boom Restaurant"
+                  },
+                  "address": {
+                    "type": "string",
+                    "example": "Chiang Mai"
+                  },
+                  "phone": {
+                    "type": "string",
+                    "example": "0812345678"
+                  },
+                  "menu_description": {
+                    "type": "string",
+                    "example": "Thai food"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "✅ Restaurant created successfully",
+            "content": {
+              "application/json": {
+                "example": {
+                  "status": "ok",
+                  "id": 1
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "❌ Invalid input",
+            "content": {
+              "application/json": {
+                "example": {
+                  "status": "bad_request",
+                  "message": "restaurant_name is required"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "🔒 Unauthorized - Please login and use Authorize button first",
+            "content": {
+              "application/json": {
+                "example": {
+                  "status": "error",
+                  "message": "Unauthorized"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "❌ Server error",
+            "content": {
+              "application/json": {
+                "example": {
+                  "status": "error",
+                  "message": "Database error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/restaurants/{id}": {
+      "get": {
+        "tags": [
+          "Restaurants"
+        ],
+        "summary": "🍽️ Get restaurant by ID",
+        "description": "ดึงข้อมูลร้านอาหารตาม ID\n🔒 Requires authentication\n",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "example": 1
+            },
+            "description": "Restaurant ID"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "✅ Success",
+            "content": {
+              "application/json": {
+                "example": {
+                  "status": "ok",
+                  "data": {
+                    "id": 1,
+                    "restaurant_name": "Boom Restaurant",
+                    "address": "Chiang Mai",
+                    "phone": "0812345678",
+                    "menu_description": "Thai food",
+                    "created_at": "2026-01-02T10:00:00.000Z",
+                    "updated_at": "2026-01-02T10:00:00.000Z"
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "❌ Invalid ID",
+            "content": {
+              "application/json": {
+                "example": {
+                  "status": "bad_request",
+                  "message": "id must be a number"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "🔒 Unauthorized - Please login and use Authorize button first",
+            "content": {
+              "application/json": {
+                "example": {
+                  "status": "error",
+                  "message": "Unauthorized"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "❌ Restaurant not found",
+            "content": {
+              "application/json": {
+                "example": {
+                  "status": "not_found",
+                  "message": "Restaurant not found"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "❌ Server error",
+            "content": {
+              "application/json": {
+                "example": {
+                  "status": "error",
+                  "message": "Database error"
+                }
+              }
+            }
+          }
+        }
+      },
+      "put": {
+        "tags": [
+          "Restaurants"
+        ],
+        "summary": "✏️ Update restaurant by ID",
+        "description": "ใช้สำหรับแก้ไขข้อมูลร้านอาหารตาม ID\nสามารถส่งมาเฉพาะ field ที่ต้องการแก้ไขได้\n🔒 Requires authentication\n",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "example": 1
+            },
+            "description": "Restaurant ID"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "restaurant_name": {
+                    "type": "string",
+                    "example": "Boom Restaurant"
+                  },
+                  "address": {
+                    "type": "string",
+                    "example": "Chiang Mai"
+                  },
+                  "phone": {
+                    "type": "string",
+                    "example": "0812345678"
+                  },
+                  "menu_description": {
+                    "type": "string",
+                    "example": "Thai food"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "✅ Restaurant updated successfully",
+            "content": {
+              "application/json": {
+                "example": {
+                  "status": "ok",
+                  "message": "Restaurant updated successfully"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "❌ Invalid input",
+            "content": {
+              "application/json": {
+                "example": {
+                  "status": "bad_request",
+                  "message": "No fields to update"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "🔒 Unauthorized - Please login and use Authorize button first",
+            "content": {
+              "application/json": {
+                "example": {
+                  "status": "error",
+                  "message": "Unauthorized"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "❌ Restaurant not found",
+            "content": {
+              "application/json": {
+                "example": {
+                  "status": "not_found",
+                  "message": "Restaurant not found"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "❌ Server error",
+            "content": {
+              "application/json": {
+                "example": {
+                  "status": "error",
+                  "message": "Database error"
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "Restaurants"
+        ],
+        "summary": "🗑️ Delete restaurant by ID",
+        "description": "ใช้สำหรับลบข้อมูลร้านอาหารตาม ID\n🔒 Requires authentication\n",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "example": 1
+            },
+            "description": "Restaurant ID"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "✅ Restaurant deleted successfully",
+            "content": {
+              "application/json": {
+                "example": {
+                  "status": "ok",
+                  "message": "Restaurant deleted successfully"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "❌ Invalid ID",
+            "content": {
+              "application/json": {
+                "example": {
+                  "status": "bad_request",
+                  "message": "id must be a number"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "🔒 Unauthorized - Please login and use Authorize button first",
+            "content": {
+              "application/json": {
+                "example": {
+                  "status": "error",
+                  "message": "Unauthorized"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "❌ Restaurant not found",
+            "content": {
+              "application/json": {
+                "example": {
+                  "status": "not_found",
+                  "message": "Restaurant not found"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "❌ Server error",
+            "content": {
+              "application/json": {
+                "example": {
+                  "status": "error",
+                  "message": "Database error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/shippings": {
+      "get": {
+        "tags": [
+          "Shippings"
+        ],
+        "summary": "🚚 Get all shippings",
+        "description": "ดึงข้อมูลการจัดส่งทั้งหมดจากระบบ\nรองรับ pagination\n🔒 Requires authentication\n",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "query",
+            "name": "limit",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "example": 10
+            },
+            "description": "จำนวนข้อมูลต่อหน้า (สูงสุด 100)"
+          },
+          {
+            "in": "query",
+            "name": "page",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "example": 1
+            },
+            "description": "หน้าที่ต้องการดู"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "✅ Success",
+            "content": {
+              "application/json": {
+                "example": {
+                  "status": "ok",
+                  "count": 1,
+                  "data": [
+                    {
+                      "id": 1,
+                      "order_id": 10,
+                      "receiver_name": "Somchai",
+                      "shipping_address": "Chiang Mai",
+                      "phone": "0812345678",
+                      "shipping_status": "pending",
+                      "created_at": "2026-01-02T10:00:00.000Z",
+                      "updated_at": "2026-01-02T10:00:00.000Z"
+                    }
+                  ],
+                  "total": 1,
+                  "page": 1,
+                  "limit": 10
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "❌ Invalid query parameters",
+            "content": {
+              "application/json": {
+                "example": {
+                  "status": "bad_request",
+                  "message": "limit must be a positive number"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "🔒 Unauthorized - Please login and use Authorize button first",
+            "content": {
+              "application/json": {
+                "example": {
+                  "status": "error",
+                  "message": "Unauthorized"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "❌ Server error",
+            "content": {
+              "application/json": {
+                "example": {
+                  "status": "error",
+                  "message": "Database error"
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "Shippings"
+        ],
+        "summary": "➕ Create shipping",
+        "description": "สร้างข้อมูลการจัดส่งใหม่\n🔒 Requires authentication\n",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "order_id",
+                  "receiver_name",
+                  "shipping_address",
+                  "phone"
+                ],
+                "properties": {
+                  "order_id": {
+                    "type": "integer",
+                    "example": 10
+                  },
+                  "receiver_name": {
+                    "type": "string",
+                    "example": "Somchai"
+                  },
+                  "shipping_address": {
+                    "type": "string",
+                    "example": "Chiang Mai"
+                  },
+                  "phone": {
+                    "type": "string",
+                    "example": "0812345678"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "✅ Shipping created successfully",
+            "content": {
+              "application/json": {
+                "example": {
+                  "status": "ok",
+                  "id": 1
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "❌ Missing or invalid input",
+            "content": {
+              "application/json": {
+                "example": {
+                  "status": "bad_request",
+                  "message": "Missing required fields"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "🔒 Unauthorized - Please login and use Authorize button first",
+            "content": {
+              "application/json": {
+                "example": {
+                  "status": "error",
+                  "message": "Unauthorized"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "❌ Server error",
+            "content": {
+              "application/json": {
+                "example": {
+                  "status": "error",
+                  "message": "Database error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/shippings/{id}": {
+      "get": {
+        "tags": [
+          "Shippings"
+        ],
+        "summary": "🚚 Get shipping by ID",
+        "description": "ดึงข้อมูลการจัดส่งตาม ID\n🔒 Requires authentication\n",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "example": 1
+            },
+            "description": "Shipping ID"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "✅ Success",
+            "content": {
+              "application/json": {
+                "example": {
+                  "status": "ok",
+                  "data": {
+                    "id": 1,
+                    "order_id": 10,
+                    "receiver_name": "Somchai",
+                    "shipping_address": "Chiang Mai",
+                    "phone": "0812345678",
+                    "shipping_status": "pending",
+                    "created_at": "2026-01-02T10:00:00.000Z",
+                    "updated_at": "2026-01-02T10:00:00.000Z"
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "❌ Invalid ID",
+            "content": {
+              "application/json": {
+                "example": {
+                  "status": "bad_request",
+                  "message": "id must be a number"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "🔒 Unauthorized - Please login and use Authorize button first",
+            "content": {
+              "application/json": {
+                "example": {
+                  "status": "error",
+                  "message": "Unauthorized"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "❌ Shipping not found",
+            "content": {
+              "application/json": {
+                "example": {
+                  "status": "not_found",
+                  "message": "Shipping not found"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "❌ Server error",
+            "content": {
+              "application/json": {
+                "example": {
+                  "status": "error",
+                  "message": "Database error"
+                }
+              }
+            }
+          }
+        }
+      },
+      "put": {
+        "tags": [
+          "Shippings"
+        ],
+        "summary": "✏️ Update shipping by ID",
+        "description": "ใช้สำหรับแก้ไขข้อมูลการจัดส่งตาม ID\nสามารถอัปเดตสถานะการจัดส่งได้\n(pending, delivering, delivered, cancelled)\n🔒 Requires authentication\n",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "example": 1
+            },
+            "description": "Shipping ID"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "receiver_name": {
+                    "type": "string",
+                    "example": "Somchai"
+                  },
+                  "shipping_address": {
+                    "type": "string",
+                    "example": "Chiang Mai"
+                  },
+                  "phone": {
+                    "type": "string",
+                    "example": "0812345678"
+                  },
+                  "shipping_status": {
+                    "type": "string",
+                    "enum": [
+                      "pending",
+                      "delivering",
+                      "delivered",
+                      "cancelled"
+                    ],
+                    "example": "delivered"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "✅ Shipping updated successfully",
+            "content": {
+              "application/json": {
+                "example": {
+                  "status": "ok",
+                  "message": "Shipping updated successfully"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "❌ Invalid input",
+            "content": {
+              "application/json": {
+                "example": {
+                  "status": "bad_request",
+                  "message": "No fields to update"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "🔒 Unauthorized - Please login and use Authorize button first",
+            "content": {
+              "application/json": {
+                "example": {
+                  "status": "error",
+                  "message": "Unauthorized"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "❌ Shipping not found",
+            "content": {
+              "application/json": {
+                "example": {
+                  "status": "not_found",
+                  "message": "Shipping not found"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "❌ Server error",
+            "content": {
+              "application/json": {
+                "example": {
+                  "status": "error",
+                  "message": "Database error"
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "Shippings"
+        ],
+        "summary": "🗑️ Delete shipping by ID",
+        "description": "ลบข้อมูลการจัดส่งตาม ID\n🔒 Requires authentication\n",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "example": 1
+            },
+            "description": "Shipping ID"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "✅ Shipping deleted successfully",
+            "content": {
+              "application/json": {
+                "example": {
+                  "status": "ok",
+                  "message": "Shipping deleted successfully"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "❌ Invalid ID",
+            "content": {
+              "application/json": {
+                "example": {
+                  "status": "bad_request",
+                  "message": "id must be a number"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "🔒 Unauthorized - Please login and use Authorize button first",
+            "content": {
+              "application/json": {
+                "example": {
+                  "status": "error",
+                  "message": "Unauthorized"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "❌ Shipping not found",
+            "content": {
+              "application/json": {
+                "example": {
+                  "status": "not_found",
+                  "message": "Shipping not found"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "❌ Server error",
+            "content": {
+              "application/json": {
+                "example": {
+                  "status": "error",
+                  "message": "Database error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/users": {
+      "get": {
+        "tags": [
+          "Users"
+        ],
+        "summary": "📋 Get all users",
+        "description": "Retrieve a paginated list of all users.\n🔒 Requires authentication - Click **Authorize** button first!\n",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "query",
+            "name": "limit",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "maximum": 100,
+              "default": 10
+            },
+            "description": "Number of users per page (max 100)"
+          },
+          {
+            "in": "query",
+            "name": "page",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "default": 1
+            },
+            "description": "Page number"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "✅ Success",
+            "content": {
+              "application/json": {
+                "example": {
+                  "status": "ok",
+                  "count": 1,
+                  "data": [
+                    {
+                      "id": 1,
+                      "firstname": "John",
+                      "fullname": "John Doe",
+                      "lastname": "Doe",
+                      "username": "johndoe",
+                      "created_at": "2026-01-02T14:23:55.228Z",
+                      "updated_at": "2026-01-02T14:23:55.228Z"
+                    }
+                  ],
+                  "total": 1,
+                  "page": 1,
+                  "limit": 10
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "🔒 Unauthorized - Please login and use Authorize button first",
+            "content": {
+              "application/json": {
+                "example": {
+                  "status": "error",
+                  "message": "Unauthorized"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "❌ Server error",
+            "content": {
+              "application/json": {
+                "example": {
+                  "status": "error",
+                  "message": "Database error"
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "Users"
+        ],
+        "summary": "➕ Create new user",
+        "description": "Create a new user (customer).\nระบบจะทำการ hash รหัสผ่านก่อนบันทึกลงฐานข้อมูล\n",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "username",
+                  "password"
+                ],
+                "properties": {
+                  "username": {
+                    "type": "string",
+                    "example": "johndoe"
+                  },
+                  "password": {
+                    "type": "string",
+                    "example": 123456
+                  },
+                  "firstname": {
+                    "type": "string",
+                    "example": "John"
+                  },
+                  "fullname": {
+                    "type": "string",
+                    "example": "John Doe"
+                  },
+                  "lastname": {
+                    "type": "string",
+                    "example": "Doe"
+                  },
+                  "address": {
+                    "type": "string",
+                    "example": "123 Main Street"
+                  },
+                  "phone": {
+                    "type": "string",
+                    "example": "0812345678"
+                  },
+                  "email": {
+                    "type": "string",
+                    "example": "john.doe@example.com"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "✅ User created successfully"
+          },
+          "400": {
+            "description": "⚠️ Missing required fields"
+          },
+          "409": {
+            "description": "❌ Username or email already exists"
+          },
+          "500": {
+            "description": "❌ Server error"
+          }
+        }
+      }
+    },
+    "/api/users/{id}": {
+      "get": {
+        "tags": [
+          "Users"
+        ],
+        "summary": "👤 Get user by ID",
+        "description": "ใช้สำหรับดึงข้อมูลลูกค้ารายบุคคลจากระบบ\nโดยระบุ **ID ของผู้ใช้** ผ่าน path parameter\n\n🔒 ผู้เรียก API ต้องผ่านการ Login\nและต้องกดปุ่ม **Authorize** ใน Swagger ก่อนเรียกใช้งาน\n\nตัวอย่างการเรียกใช้งาน:\n- GET /api/users/1\n- GET /api/users/5\n",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "example": 1
+            },
+            "description": "รหัสประจำตัว (ID) ของผู้ใช้งาน\nต้องเป็นตัวเลขที่มีอยู่ในระบบ\n"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "✅ Success – ดึงข้อมูลผู้ใช้สำเร็จ",
+            "content": {
+              "application/json": {
+                "example": {
+                  "status": "ok",
+                  "data": {
+                    "id": 1,
+                    "username": "johndoe",
+                    "firstname": "John",
+                    "fullname": "John Doe",
+                    "lastname": "Doe",
+                    "address": "123 Main Street",
+                    "phone": "0812345678",
+                    "email": "john.doe@example.com",
+                    "created_at": "2026-01-02T14:23:55.228Z",
+                    "updated_at": "2026-01-02T14:23:55.228Z"
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "🔒 Unauthorized – กรุณา Login และใส่ JWT Token",
+            "content": {
+              "application/json": {
+                "example": {
+                  "status": "error",
+                  "message": "Unauthorized"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "❌ Not Found – ไม่พบผู้ใช้ตาม ID ที่ระบุ",
+            "content": {
+              "application/json": {
+                "example": {
+                  "status": "not_found",
+                  "message": "User not found"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "❌ Server Error – เกิดข้อผิดพลาดจากระบบหรือฐานข้อมูล",
+            "content": {
+              "application/json": {
+                "example": {
+                  "status": "error",
+                  "message": "Database error"
+                }
+              }
+            }
+          }
+        }
+      },
+      "put": {
+        "tags": [
+          "Users"
+        ],
+        "summary": "✏️ Update user",
+        "description": "ใช้สำหรับแก้ไขข้อมูลลูกค้าในระบบ\nสามารถส่งมาเฉพาะ field ที่ต้องการแก้ไขได้ (Partial Update)\n\n🔒 ผู้เรียก API ต้องผ่านการ Login\nและต้องกดปุ่ม **Authorize** ใน Swagger ก่อนใช้งาน\n\nตัวอย่างการเรียกใช้งาน:\n- PUT /api/users/1\n",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "example": 1
+            },
+            "description": "รหัสประจำตัว (ID) ของผู้ใช้ที่ต้องการแก้ไข\n"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "username": {
+                    "type": "string",
+                    "example": "johndoe"
+                  },
+                  "password": {
+                    "type": "string",
+                    "example": "newpassword123"
+                  },
+                  "firstname": {
+                    "type": "string",
+                    "example": "John"
+                  },
+                  "fullname": {
+                    "type": "string",
+                    "example": "John Doe"
+                  },
+                  "lastname": {
+                    "type": "string",
+                    "example": "Doe"
+                  },
+                  "address": {
+                    "type": "string",
+                    "example": "123 Main Street"
+                  },
+                  "phone": {
+                    "type": "string",
+                    "example": "0812345678"
+                  },
+                  "email": {
+                    "type": "string",
+                    "example": "john.doe@example.com"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "✅ Success – แก้ไขข้อมูลผู้ใช้สำเร็จ",
+            "content": {
+              "application/json": {
+                "example": {
+                  "status": "ok",
+                  "message": "User updated successfully"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "⚠️ Bad Request – ไม่มี field ที่ต้องการแก้ไข",
+            "content": {
+              "application/json": {
+                "example": {
+                  "status": "bad_request",
+                  "message": "No fields to update"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "🔒 Unauthorized – กรุณา Login และใส่ JWT Token",
+            "content": {
+              "application/json": {
+                "example": {
+                  "status": "error",
+                  "message": "Unauthorized"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "❌ Not Found – ไม่พบผู้ใช้ตาม ID ที่ระบุ",
+            "content": {
+              "application/json": {
+                "example": {
+                  "status": "not_found",
+                  "message": "User not found"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "❌ Server Error – เกิดข้อผิดพลาดจากระบบหรือฐานข้อมูล",
+            "content": {
+              "application/json": {
+                "example": {
+                  "status": "error",
+                  "message": "Database error"
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "Users"
+        ],
+        "summary": "🗑️ Delete user",
+        "description": "ใช้สำหรับลบข้อมูลลูกค้าออกจากระบบอย่างถาวร\nโดยระบุ **ID ของผู้ใช้** ผ่าน path parameter\n\n⚠️ การลบเป็นการลบข้อมูลออกจากฐานข้อมูลโดยตรง\nควรใช้งานด้วยความระมัดระวัง\n\n🔒 ผู้เรียก API ต้องผ่านการ Login\nและต้องกดปุ่ม **Authorize** ใน Swagger ก่อนใช้งาน\n\nตัวอย่างการเรียกใช้งาน:\n- DELETE /api/users/1\n",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "example": 1
+            },
+            "description": "รหัสประจำตัว (ID) ของผู้ใช้ที่ต้องการลบ\nต้องเป็น ID ที่มีอยู่ในระบบ\n"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "✅ Success – ลบข้อมูลผู้ใช้สำเร็จ",
+            "content": {
+              "application/json": {
+                "example": {
+                  "status": "ok",
+                  "message": "User deleted successfully"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "🔒 Unauthorized – กรุณา Login และใส่ JWT Token",
+            "content": {
+              "application/json": {
+                "example": {
+                  "status": "error",
+                  "message": "Unauthorized"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "❌ Not Found – ไม่พบผู้ใช้ตาม ID ที่ระบุ",
+            "content": {
+              "application/json": {
+                "example": {
+                  "status": "not_found",
+                  "message": "User not found"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "❌ Server Error – เกิดข้อผิดพลาดจากระบบหรือฐานข้อมูล",
+            "content": {
+              "application/json": {
+                "example": {
+                  "status": "error",
+                  "message": "Database error"
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}
